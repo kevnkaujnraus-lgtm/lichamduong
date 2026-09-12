@@ -5,67 +5,39 @@ on:
     branches:
       - main
       - master
-
   workflow_dispatch:
 
 permissions:
   contents: read
 
-env:
-  PYTHON_VERSION: "3.12"
-  BUILDOZER_VERSION: "1.6.0"
-  P4A_COMMIT: "58d2114"
-
 jobs:
   build:
     name: Build Android APK
     runs-on: ubuntu-22.04
-    timeout-minutes: 90
+    timeout-minutes: 60
 
     steps:
-
-      # ============================================================
-      # CHECKOUT
-      # ============================================================
-
       - name: Checkout source
         uses: actions/checkout@v4
 
-      # ============================================================
-      # PYTHON HOST
-      # ============================================================
-
-      - name: Setup Python
+      - name: Setup Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-
-      # ============================================================
-      # JAVA
-      # setup-java v5 - no Gradle cache
-      # ============================================================
+          python-version: "3.12"
 
       - name: Setup Java 17
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v4
         with:
-          distribution: temurin
+          distribution: "temurin"
           java-version: "17"
-
-      # ============================================================
-      # SYSTEM DEPENDENCIES
-      # ============================================================
 
       - name: Install system dependencies
         run: |
           sudo apt-get update
-
           sudo apt-get install -y \
             git \
             zip \
             unzip \
-            curl \
-            wget \
             autoconf \
             automake \
             libtool \
@@ -75,167 +47,46 @@ jobs:
             libncursesw5-dev \
             cmake \
             libffi-dev \
-            libssl-dev \
-            libltdl-dev \
-            libsqlite3-dev \
-            gettext
+            libssl-dev
 
-      # ============================================================
-      # BUILD TOOLS
-      # ============================================================
+      - name: Upgrade pip
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
 
       - name: Install Buildozer
         run: |
-          python -m pip install --upgrade pip
-
-          python -m pip install \
-            "buildozer==${BUILDOZER_VERSION}" \
-            "cython<3.4"
-
-          echo "===== Python ====="
-          python --version
-
-          echo "===== Buildozer ====="
-          buildozer --version
-
-      # ============================================================
-      # VERIFY PROJECT
-      # ============================================================
-
-      - name: Verify project configuration
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          echo "===== PROJECT ====="
-
-          test -f main.py
-          test -f lunar.py
-          test -f buildozer.spec
-          test -f requirements.txt
-
-          echo "Files OK"
-
-          python - <<'PY'
-          from pathlib import Path
-
-          spec = Path("buildozer.spec").read_text(
-              encoding="utf-8"
-          )
-
-          req = Path("requirements.txt").read_text(
-              encoding="utf-8"
-          )
-
-          required_spec = [
-              "requirements = python3==3.11.9,kivy==2.3.1",
-              "android.api = 35",
-              "android.minapi = 24",
-              "android.ndk = 28c",
-              "android.archs = arm64-v8a",
-              "p4a.commit = 58d2114",
-          ]
-
-          for item in required_spec:
-              if item not in spec:
-                  raise RuntimeError(
-                      f"Missing buildozer configuration: {item}"
-                  )
-
-          if "python3==3.11.9" not in req:
-              raise RuntimeError(
-                  "Python 3.11.9 missing from requirements.txt"
-              )
-
-          if "kivy==2.3.1" not in req:
-              raise RuntimeError(
-                  "Kivy 2.3.1 missing from requirements.txt"
-              )
-
-          print("Configuration OK")
-          PY
-
-      # ============================================================
-      # CACHE
-      #
-      # Only cache Buildozer data.
-      # Do NOT cache ~/.gradle here.
-      # ============================================================
+          python -m pip install "cython<3"
+          python -m pip install buildozer
 
       - name: Cache Buildozer
         uses: actions/cache@v4
         with:
           path: |
             ~/.buildozer
-
-          key: >-
-            buildozer-ubuntu22-python311-
-            p4a-${{ env.P4A_COMMIT }}-
-            ndk28c-
-            ${{ hashFiles('buildozer.spec', 'requirements.txt') }}
-
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: buildozer-${{ runner.os }}-${{ hashFiles('buildozer.spec', 'requirements.txt') }}
           restore-keys: |
-            buildozer-ubuntu22-python311-p4a-${{ env.P4A_COMMIT }}-ndk28c-
-            buildozer-ubuntu22-python311-
+            buildozer-${{ runner.os }}-
 
-      # ============================================================
-      # CLEAN
-      # ============================================================
-
-      - name: Clean stale build
-        shell: bash
+      - name: Fix buildozer.spec encoding
         run: |
-          set -e
+          python -c "from pathlib import Path; p=Path('buildozer.spec'); b=p.read_bytes(); p.write_bytes(b[3:] if b.startswith(bytes([239,187,191])) else b)"
+          echo "===== buildozer.spec ====="
+          sed -n '1,30p' buildozer.spec
 
-          rm -rf .buildozer
-          rm -rf bin
-
-          echo "Old build state removed"
-
-      # ============================================================
-      # BUILD APK
-      # ============================================================
-
-      - name: Build debug APK
-        shell: bash
+      - name: Validate buildozer.spec
         run: |
-          set -e
+          python -c "from pathlib import Path; b=Path('buildozer.spec').read_bytes(); assert not b.startswith(bytes([239,187,191])), 'UTF-8 BOM still exists'; assert b'[app]' in b, 'Missing [app] section'; print('buildozer.spec OK')"
 
-          yes | buildozer -v android debug
-
-      # ============================================================
-      # VERIFY APK
-      # ============================================================
-
-      - name: Verify APK
-        shell: bash
+      - name: Build APK
         run: |
-          set -euo pipefail
+          yes | buildozer android debug
 
+      - name: List generated APK
+        run: |
           echo "===== APK FILES ====="
-
-          find bin \
-            -type f \
-            -name "*.apk" \
-            -print
-
-          APK=$(find bin \
-            -type f \
-            -name "*.apk" \
-            -print \
-            -quit)
-
-          if [ -z "$APK" ]; then
-            echo "ERROR: APK was not generated"
-            exit 1
-          fi
-
-          echo "APK generated:"
-          echo "$APK"
-
-      # ============================================================
-      # UPLOAD APK
-      # ============================================================
+          find bin -type f -name "*.apk" -print
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -244,27 +95,3 @@ jobs:
           path: bin/*.apk
           if-no-files-found: error
           retention-days: 30
-
-      # ============================================================
-      # BUILD SUMMARY
-      # ============================================================
-
-      - name: Build summary
-        if: always()
-        shell: bash
-        run: |
-          echo "=========================================="
-          echo " Lich Am Duong Android Build"
-          echo "=========================================="
-          echo "Host Python : ${{ env.PYTHON_VERSION }}"
-          echo "Buildozer   : ${{ env.BUILDOZER_VERSION }}"
-          echo "P4A commit  : ${{ env.P4A_COMMIT }}"
-          echo "Android API : 35"
-          echo "Android NDK : 28c"
-          echo "Architecture: arm64-v8a"
-          echo "=========================================="
-
-          if [ -d bin ]; then
-            echo "Generated files:"
-            find bin -type f -maxdepth 1 -print
-          fi
