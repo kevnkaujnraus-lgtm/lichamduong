@@ -6,7 +6,6 @@ on:
     branches:
       - main
       - master
-
   workflow_dispatch:
 
 permissions:
@@ -30,7 +29,7 @@ jobs:
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
+          distribution: "temurin"
           java-version: "17"
 
       - name: Install system dependencies
@@ -40,7 +39,6 @@ jobs:
             git \
             zip \
             unzip \
-            openjdk-17-jdk \
             autoconf \
             automake \
             libtool \
@@ -58,8 +56,8 @@ jobs:
 
       - name: Install Buildozer
         run: |
-          pip install "cython<3"
-          pip install buildozer
+          python -m pip install "cython<3"
+          python -m pip install buildozer
 
       - name: Cache Buildozer
         uses: actions/cache@v4
@@ -74,26 +72,24 @@ jobs:
 
       - name: Fix buildozer.spec encoding
         run: |
-          python -c "from pathlib import Path; p=Path('buildozer.spec'); b=p.read_bytes(); p.write_bytes(b[3:] if b.startswith(b'\xef\xbb\xbf') else b)"
+          python -c "from pathlib import Path; p=Path('buildozer.spec'); b=p.read_bytes(); p.write_bytes(b[3:] if b.startswith(bytes([239,187,191])) else b)"
           echo "===== buildozer.spec ====="
-          sed -n '1,25p' buildozer.spec
+          sed -n '1,30p' buildozer.spec
 
       - name: Validate buildozer.spec
         run: |
-          python -c "from pathlib import Path; b=Path('buildozer.spec').read_bytes(); assert not b.startswith(b'\xef\xbb\xbf'), 'UTF-8 BOM still exists'; assert b'[app]' in b, 'Missing [app] section'; print('buildozer.spec OK')"
+          python -c "from pathlib import Path; b=Path('buildozer.spec').read_bytes(); assert not b.startswith(bytes([239,187,191])), 'UTF-8 BOM still exists'; assert b'[app]' in b, 'Missing [app] section'; print('buildozer.spec OK')"
 
       - name: Build APK
         run: |
           yes | buildozer android debug
 
       - name: List generated APK
-        if: success()
         run: |
           echo "===== APK FILES ====="
           find bin -type f -name "*.apk" -print
 
       - name: Upload APK artifact
-        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: LichAmDuong-APK
@@ -101,21 +97,3 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 ```
--------------------------------------
-
-      - name: List generated APK
-        run: |
-          echo "===== APK FILES ====="
-          find bin -type f -name "*.apk" -print
-
-      # ------------------------------------------------------
-      # Upload APK
-      # ------------------------------------------------------
-
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: LichAmDuong-APK
-          path: bin/*.apk
-          if-no-files-found: error
-          retention-days: 30
