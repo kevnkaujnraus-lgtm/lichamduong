@@ -1,5 +1,4 @@
-﻿```yaml
-name: Build LichAmDuong APK
+﻿name: Build LichAmDuong APK
 
 on:
   push:
@@ -96,4 +95,3 @@ jobs:
           path: bin/*.apk
           if-no-files-found: error
           retention-days: 30
-```
