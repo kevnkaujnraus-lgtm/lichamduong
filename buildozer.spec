@@ -1,119 +1,66 @@
-[app]
+﻿[app]
 
-# (str) Title of your application
+# ------------------------------------------------------------
+# ThÃ´ng tin á»©ng dá»¥ng
+# ------------------------------------------------------------
 
-title = Lịch Âm Dương
-
-# (str) Package name
-
+title = Lich Am Duong
 package.name = lichamduong
-
-# (str) Package domain
-
-package.domain = org.lichamduong
-
-# (str) Source code directory
+package.domain = com.kevnkaujnraus
 
 source.dir = .
-
-# (str) Application version
+source.include_exts = py,png,jpg,jpeg,kv,json,txt,ini,atlas,ttf,ico
 
 version = 1.0.0
 
-# (str) Application requirements
+# ------------------------------------------------------------
+# Python / Kivy
+# ------------------------------------------------------------
 
-requirements = python3,kivy==2.3.1
-
-# (str) Supported source file extensions
-
-source.include_exts = py,png,jpg,jpeg,kv,json,txt
-
-# (str) Application orientation
+requirements = python3,kivy
 
 orientation = portrait
 
-# (bool) Fullscreen mode
-
 fullscreen = 0
 
-# (str) Presplash
+# ------------------------------------------------------------
+# Android
+# ------------------------------------------------------------
 
-# presplash.filename = %(source.dir)s/data/presplash.png
+android.api = 35
+android.minapi = 23
+android.ndk = 27c
 
-# (str) Icon
-
-# icon.filename = %(source.dir)s/data/icon.png
-
-# (str) Supported Android architectures
+android.accept_sdk_license = True
 
 android.archs = arm64-v8a, armeabi-v7a
 
-# (int) Android API level
+# ------------------------------------------------------------
+# Permissions
+# ------------------------------------------------------------
 
-android.api = 35
+android.permissions = INTERNET
 
-# (int) Minimum Android API level
+# ------------------------------------------------------------
+# Icon / Presplash
+# ------------------------------------------------------------
 
-android.minapi = 23
+# Náº¿u project cÃ³ icon.png thÃ¬ Buildozer sáº½ sá»­ dá»¥ng.
+# icon.filename = %(source.dir)s/icon.png
 
-# (str) Android permissions
+# presplash.filename = %(source.dir)s/presplash.png
 
-android.permissions =
-
-# (str) Android entry point
-
-# android.entrypoint = org.kivy.android.PythonActivity
-
-# (str) Android application theme
-
-# android.apptheme = "@android:style/Theme.Material.Light.NoActionBar"
-
-# (bool) Enable AndroidX
-
-android.enable_androidx = True
-
-# (bool) Enable Android activity restart on configuration changes
-
-android.allow_backup = True
-
-# (str) Python-for-Android branch
-
-# p4a.branch = master
-
-# (str) Python-for-Android URL
-
-# p4a.url =
-
-# (str) Extra source files
-
-# source.include_patterns =
-
-# (str) Extra exclude files
-
-source.exclude_exts = pyc,pyo
-
-# (str) Extra exclude directories
-
-source.exclude_dirs = **pycache**,.git,.github,.buildozer,bin
-
-# (str) Application log level
+# ------------------------------------------------------------
+# Log
+# ------------------------------------------------------------
 
 log_level = 2
+
+# ------------------------------------------------------------
+# Buildozer
+# ------------------------------------------------------------
 
 [buildozer]
 
-# (int) Log level
-
 log_level = 2
-
-# (bool) Warn when running Buildozer as root
-
 warn_on_root = 1
-
-[buildozer:android]
-
-# Android specific options
-
-android.api = 35
-android.minapi = 23
-android.archs = arm64-v8a,armeabi-v7a

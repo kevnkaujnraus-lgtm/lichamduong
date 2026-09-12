@@ -1,19 +1,32 @@
-**pycache**/
-*.pyc
+﻿# Python
+__pycache__/
+*.py[cod]
 *.pyo
-*.pyd
 
-.buildozer/
-bin/
-
+# Virtual environment
 .venv/
 venv/
 env/
 
-.idea/
-.vscode/
+# Buildozer
+.buildozer/
+bin/
 
+# Android
+*.apk
+*.aab
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Logs
 *.log
 
-.DS_Store
-Thumbs.db
+# Temporary
+*.tmp
+*.temp
