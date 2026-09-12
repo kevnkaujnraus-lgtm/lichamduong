@@ -1,4 +1,1 @@
-# Runtime dependencies for Lich Am Duong
-# Keep these versions synchronized with buildozer.spec.
-python3==3.11.9
 kivy==2.3.1
