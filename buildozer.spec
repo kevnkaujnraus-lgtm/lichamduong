@@ -21,3 +21,7 @@ android.ndk_api = 23
 android.archs = arm64-v8a, armeabi-v7a
 android.permissions =
 android.accept_sdk_license = True
+
+# Ghim python-for-android về bản ổn định (tránh bản master mới nhất
+# đang lỗi khi build với Python 3.14 cho Android)
+p4a.branch = v2024.01.21
