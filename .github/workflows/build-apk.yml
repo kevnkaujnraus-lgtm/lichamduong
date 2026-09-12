@@ -1,8 +1,11 @@
-name: Build LichAmDuong APK
+﻿name: Build LichAmDuong APK
 
 on:
   push:
-    branches: [main, master]
+    branches:
+      - main
+      - master
+
   workflow_dispatch:
 
 permissions:
@@ -20,8 +23,17 @@ jobs:
     timeout-minutes: 90
 
     steps:
+
+      # ============================================================
+      # CHECKOUT
+      # ============================================================
+
       - name: Checkout source
         uses: actions/checkout@v4
+
+      # ============================================================
+      # PYTHON HOST
+      # ============================================================
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -29,86 +41,201 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
 
+      # ============================================================
+      # JAVA
+      # setup-java v5 - no Gradle cache
+      # ============================================================
+
       - name: Setup Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
-          cache: gradle
+
+      # ============================================================
+      # SYSTEM DEPENDENCIES
+      # ============================================================
 
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            git zip unzip curl \
-            autoconf automake libtool pkg-config \
-            zlib1g-dev libncurses5-dev libncursesw5-dev \
-            cmake libffi-dev libssl-dev \
-            libltdl-dev libsqlite3-dev gettext
 
-      - name: Install pinned Python build tools
+          sudo apt-get install -y \
+            git \
+            zip \
+            unzip \
+            curl \
+            wget \
+            autoconf \
+            automake \
+            libtool \
+            pkg-config \
+            zlib1g-dev \
+            libncurses5-dev \
+            libncursesw5-dev \
+            cmake \
+            libffi-dev \
+            libssl-dev \
+            libltdl-dev \
+            libsqlite3-dev \
+            gettext
+
+      # ============================================================
+      # BUILD TOOLS
+      # ============================================================
+
+      - name: Install Buildozer
         run: |
           python -m pip install --upgrade pip
+
           python -m pip install \
             "buildozer==${BUILDOZER_VERSION}" \
             "cython<3.4"
+
+          echo "===== Python ====="
+          python --version
+
+          echo "===== Buildozer ====="
           buildozer --version
+
+      # ============================================================
+      # VERIFY PROJECT
+      # ============================================================
 
       - name: Verify project configuration
         shell: bash
         run: |
           set -euo pipefail
+
+          echo "===== PROJECT ====="
+
           test -f main.py
           test -f lunar.py
           test -f buildozer.spec
           test -f requirements.txt
-          ! grep -q $'\xEF\xBB\xBF' buildozer.spec || true
+
+          echo "Files OK"
+
           python - <<'PY'
           from pathlib import Path
-          spec = Path('buildozer.spec').read_text(encoding='utf-8')
-          req = Path('requirements.txt').read_text(encoding='utf-8')
-          required = [
-              'requirements = python3==3.11.9,kivy==2.3.1',
-              'android.api = 35',
-              'android.minapi = 24',
-              'android.ndk = 28c',
-              'android.archs = arm64-v8a',
-              'p4a.commit = 58d2114',
+
+          spec = Path("buildozer.spec").read_text(
+              encoding="utf-8"
+          )
+
+          req = Path("requirements.txt").read_text(
+              encoding="utf-8"
+          )
+
+          required_spec = [
+              "requirements = python3==3.11.9,kivy==2.3.1",
+              "android.api = 35",
+              "android.minapi = 24",
+              "android.ndk = 28c",
+              "android.archs = arm64-v8a",
+              "p4a.commit = 58d2114",
           ]
-          for item in required:
-              assert item in spec, f'Missing config: {item}'
-          assert 'python3==3.11.9' in req
-          assert 'kivy==2.3.1' in req
-          print('Project configuration OK')
+
+          for item in required_spec:
+              if item not in spec:
+                  raise RuntimeError(
+                      f"Missing buildozer configuration: {item}"
+                  )
+
+          if "python3==3.11.9" not in req:
+              raise RuntimeError(
+                  "Python 3.11.9 missing from requirements.txt"
+              )
+
+          if "kivy==2.3.1" not in req:
+              raise RuntimeError(
+                  "Kivy 2.3.1 missing from requirements.txt"
+              )
+
+          print("Configuration OK")
           PY
 
-      - name: Cache Buildozer and Android toolchain
+      # ============================================================
+      # CACHE
+      #
+      # Only cache Buildozer data.
+      # Do NOT cache ~/.gradle here.
+      # ============================================================
+
+      - name: Cache Buildozer
         uses: actions/cache@v4
         with:
           path: |
             ~/.buildozer
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: buildozer-ubuntu22-python311-p4a-${{ env.P4A_COMMIT }}-ndk28c-${{ hashFiles('buildozer.spec', 'requirements.txt') }}
+
+          key: >-
+            buildozer-ubuntu22-python311-
+            p4a-${{ env.P4A_COMMIT }}-
+            ndk28c-
+            ${{ hashFiles('buildozer.spec', 'requirements.txt') }}
+
           restore-keys: |
             buildozer-ubuntu22-python311-p4a-${{ env.P4A_COMMIT }}-ndk28c-
             buildozer-ubuntu22-python311-
 
-      - name: Clean stale build state
+      # ============================================================
+      # CLEAN
+      # ============================================================
+
+      - name: Clean stale build
+        shell: bash
         run: |
-          rm -rf .buildozer bin
+          set -e
+
+          rm -rf .buildozer
+          rm -rf bin
+
+          echo "Old build state removed"
+
+      # ============================================================
+      # BUILD APK
+      # ============================================================
 
       - name: Build debug APK
+        shell: bash
         run: |
+          set -e
+
           yes | buildozer -v android debug
+
+      # ============================================================
+      # VERIFY APK
+      # ============================================================
 
       - name: Verify APK
         shell: bash
         run: |
           set -euo pipefail
+
           echo "===== APK FILES ====="
-          find bin -type f -name '*.apk' -print
-          test -n "$(find bin -type f -name '*.apk' -print -quit)"
+
+          find bin \
+            -type f \
+            -name "*.apk" \
+            -print
+
+          APK=$(find bin \
+            -type f \
+            -name "*.apk" \
+            -print \
+            -quit)
+
+          if [ -z "$APK" ]; then
+            echo "ERROR: APK was not generated"
+            exit 1
+          fi
+
+          echo "APK generated:"
+          echo "$APK"
+
+      # ============================================================
+      # UPLOAD APK
+      # ============================================================
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -117,3 +244,27 @@ jobs:
           path: bin/*.apk
           if-no-files-found: error
           retention-days: 30
+
+      # ============================================================
+      # BUILD SUMMARY
+      # ============================================================
+
+      - name: Build summary
+        if: always()
+        shell: bash
+        run: |
+          echo "=========================================="
+          echo " Lich Am Duong Android Build"
+          echo "=========================================="
+          echo "Host Python : ${{ env.PYTHON_VERSION }}"
+          echo "Buildozer   : ${{ env.BUILDOZER_VERSION }}"
+          echo "P4A commit  : ${{ env.P4A_COMMIT }}"
+          echo "Android API : 35"
+          echo "Android NDK : 28c"
+          echo "Architecture: arm64-v8a"
+          echo "=========================================="
+
+          if [ -d bin ]; then
+            echo "Generated files:"
+            find bin -type f -maxdepth 1 -print
+          fi
