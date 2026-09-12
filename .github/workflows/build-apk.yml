@@ -1,0 +1,124 @@
+name: Build LichAmDuong APK
+
+on:
+workflow_dispatch:
+
+push:
+branches:
+- main
+
+permissions:
+contents: read
+
+jobs:
+build-apk:
+
+```
+runs-on: ubuntu-22.04
+
+steps:
+
+  # ---------------------------------------------------------
+  # 1. Checkout source code
+  # ---------------------------------------------------------
+  - name: Checkout source
+    uses: actions/checkout@v4
+
+  # ---------------------------------------------------------
+  # 2. Setup Java
+  # ---------------------------------------------------------
+  - name: Setup Java 17
+    uses: actions/setup-java@v4
+    with:
+      distribution: temurin
+      java-version: "17"
+
+  # ---------------------------------------------------------
+  # 3. Setup Python
+  # ---------------------------------------------------------
+  - name: Setup Python 3.11
+    uses: actions/setup-python@v5
+    with:
+      python-version: "3.11"
+
+  # ---------------------------------------------------------
+  # 4. Install Linux dependencies
+  # ---------------------------------------------------------
+  - name: Install system dependencies
+    run: |
+      sudo apt-get update
+
+      sudo apt-get install -y \
+        git \
+        zip \
+        unzip \
+        openjdk-17-jdk \
+        autoconf \
+        automake \
+        libtool \
+        pkg-config \
+        zlib1g-dev \
+        libncurses5-dev \
+        libncursesw5-dev \
+        cmake \
+        libffi-dev \
+        libssl-dev \
+        build-essential
+
+  # ---------------------------------------------------------
+  # 5. Upgrade Python packaging tools
+  # ---------------------------------------------------------
+  - name: Upgrade pip
+    run: |
+      python -m pip install --upgrade pip setuptools wheel
+
+  # ---------------------------------------------------------
+  # 6. Install project requirements
+  # ---------------------------------------------------------
+  - name: Install Python requirements
+    run: |
+      pip install "Cython<3"
+      pip install "kivy==2.3.1"
+
+  # ---------------------------------------------------------
+  # 7. Install Buildozer
+  # ---------------------------------------------------------
+  - name: Install Buildozer
+    run: |
+      pip install buildozer
+
+  # ---------------------------------------------------------
+  # 8. Verify environment
+  # ---------------------------------------------------------
+  - name: Check build environment
+    run: |
+      python --version
+      java -version
+      buildozer --version
+
+  # ---------------------------------------------------------
+  # 9. Build Android APK
+  # ---------------------------------------------------------
+  - name: Build APK
+    run: |
+      buildozer android debug
+
+  # ---------------------------------------------------------
+  # 10. List generated files
+  # ---------------------------------------------------------
+  - name: List APK files
+    run: |
+      echo "Generated APK files:"
+      find bin -type f -maxdepth 2 -print
+
+  # ---------------------------------------------------------
+  # 11. Upload APK
+  # ---------------------------------------------------------
+  - name: Upload APK artifact
+    uses: actions/upload-artifact@v4
+    with:
+      name: LichAmDuong-APK
+      path: bin/*.apk
+      if-no-files-found: error
+      retention-days: 30
+```
