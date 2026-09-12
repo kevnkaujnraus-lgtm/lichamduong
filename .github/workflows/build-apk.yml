@@ -106,10 +106,28 @@ jobs:
       # Build APK
       # ------------------------------------------------------
 
+            - name: Fix buildozer.spec encoding
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path("buildozer.spec")
+          data = p.read_bytes()
+
+          if data.startswith(b"\xef\xbb\xbf"):
+              data = data[3:]
+              p.write_bytes(data)
+              print("UTF-8 BOM removed from buildozer.spec")
+          else:
+              print("buildozer.spec has no UTF-8 BOM")
+          PY
+
+          echo "===== buildozer.spec ====="
+          head -n 20 buildozer.spec
+
       - name: Build APK
         run: |
           yes | buildozer android debug
-
       # ------------------------------------------------------
       # Show APK
       # ------------------------------------------------------
