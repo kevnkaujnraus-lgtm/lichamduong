@@ -614,9 +614,9 @@ class Calendar(BoxLayout):
             )
 
             lunar = solar_to_lunar(
-                prev_y,
+                day,
                 prev_m,
-                day
+                prev_y
             )
 
             self.grid.add_widget(
@@ -641,9 +641,9 @@ class Calendar(BoxLayout):
             )
 
             lunar = solar_to_lunar(
-                dt.year,
+                dt.day,
                 dt.month,
-                dt.day
+                dt.year
             )
 
             cell = Cell(
@@ -687,9 +687,9 @@ class Calendar(BoxLayout):
                 next_y += 1
 
             lunar = solar_to_lunar(
-                next_y,
+                next_day,
                 next_m,
-                next_day
+                next_y
             )
 
             self.grid.add_widget(
@@ -742,9 +742,9 @@ class Calendar(BoxLayout):
         self.selected = dt
 
         lunar = solar_to_lunar(
-            dt.year,
+            dt.day,
             dt.month,
-            dt.day
+            dt.year
         )
 
         # ----------------------------------------------------
