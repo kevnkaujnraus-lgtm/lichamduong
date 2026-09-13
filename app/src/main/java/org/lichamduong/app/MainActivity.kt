@@ -514,9 +514,12 @@ class MainActivity : AppCompatActivity() {
         // ---------------- GIỜ CAN CHI ----------------
         hourCcLabel.text = "Giờ Canh Tý"
 
-        // ---------------- GIỜ HOÀNG ĐẠO ----------------
-        goodHoursLabel.text = "Giờ hoàng đạo: Sửu (1-3), Thìn (7-9), Ngọ (11-13), " +
-            "Mùi (13-15), Tuất (19-21), Hợi (21-23)"
+        // ---------------- GIỜ HOÀNG ĐẠO (thay đổi theo từng ngày) ----------------
+        goodHoursLabel.text = try {
+            "Giờ hoàng đạo: ${LunarCalendar.goodHours(dt)}"
+        } catch (e: Exception) {
+            "Giờ hoàng đạo: --"
+        }
     }
 
     // ========================================================

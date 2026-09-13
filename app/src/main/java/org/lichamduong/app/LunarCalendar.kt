@@ -203,4 +203,40 @@ object LunarCalendar {
         val idx = (pyMod(deg + 7.5, 360.0) / 15.0).toInt()
         return TIET[idx.coerceIn(0, TIET.size - 1)]
     }
+
+    // Khung giờ (theo giờ) tương ứng với từng Chi, theo đúng thứ tự CHI ở trên
+    private val CHI_HOUR_RANGE = listOf(
+        "23-1", "1-3", "3-5", "5-7", "7-9", "9-11",
+        "11-13", "13-15", "15-17", "17-19", "19-21", "21-23"
+    )
+
+    // Bảng tra giờ hoàng đạo theo nhóm ngày (6 nhóm, mỗi nhóm gồm 2 Chi
+    // đối xung cách nhau 6 vị trí: Tý-Ngọ, Sửu-Mùi, Dần-Thân, Mão-Dậu,
+    // Thìn-Tuất, Tỵ-Hợi). Giá trị là chỉ số (0=Tý...11=Hợi) của các giờ
+    // hoàng đạo trong ngày thuộc nhóm đó.
+    private val GOOD_HOURS_TABLE = mapOf(
+        0 to listOf(0, 1, 3, 6, 8, 9),   // Ngày Tý, Ngọ
+        1 to listOf(2, 3, 5, 8, 10, 11), // Ngày Sửu, Mùi
+        2 to listOf(0, 1, 4, 5, 7, 10),  // Ngày Dần, Thân
+        3 to listOf(0, 2, 3, 6, 7, 9),   // Ngày Mão, Dậu
+        4 to listOf(2, 4, 5, 8, 9, 11),  // Ngày Thìn, Tuất
+        5 to listOf(1, 4, 6, 7, 10, 11)  // Ngày Tỵ, Hợi
+    )
+
+    /**
+     * Trả về danh sách giờ hoàng đạo trong ngày, dạng chuỗi đã format sẵn,
+     * ví dụ: "Sửu (1-3), Thìn (7-9), Tỵ (9-11), Mùi (13-15), Tuất (19-21)".
+     * Kết quả phụ thuộc vào Chi của ngày dương lịch truyền vào nên sẽ
+     * thay đổi theo từng ngày.
+     */
+    fun goodHours(date: LocalDate): String {
+        val jd = jdFromDate(date.dayOfMonth, date.monthValue, date.year)
+        val chiIdx = (((jd + 1) % 12 + 12) % 12).toInt()
+        val group = chiIdx % 6
+        val hours = GOOD_HOURS_TABLE[group] ?: emptyList()
+
+        return hours.joinToString(", ") { idx ->
+            "${CHI[idx]} (${CHI_HOUR_RANGE[idx]})"
+        }
+    }
 }
