@@ -1,0 +1,8 @@
+<resources>
+    <style name="Theme.LichAmDuong" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <item name="android:windowBackground">@android:color/white</item>
+        <item name="colorPrimary">#1825C9</item>
+        <item name="colorPrimaryDark">#1825C9</item>
+        <item name="colorAccent">#3389F2</item>
+    </style>
+</resources>
