@@ -1,5 +1,6 @@
 package org.lichamduong.app
 
+import android.app.AlertDialog
 import android.graphics.Color
 import android.graphics.Typeface
 import android.os.Bundle
@@ -8,8 +9,10 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.FrameLayout
 import android.widget.GridLayout
 import android.widget.LinearLayout
+import android.widget.NumberPicker
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import java.time.DayOfWeek
@@ -47,11 +50,11 @@ private class DayCell(context: android.content.Context) : LinearLayout(context) 
         isFocusable = true
 
         solarText.gravity = Gravity.CENTER
-        solarText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+        solarText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
         solarText.setTypeface(null, Typeface.BOLD)
 
         lunarText.gravity = Gravity.CENTER
-        lunarText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
+        lunarText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
 
         addView(solarText)
         addView(lunarText)
@@ -236,8 +239,13 @@ class MainActivity : AppCompatActivity() {
 
         prevBtn.setOnClickListener { changeMonth(-1) }
         nextBtn.setOnClickListener { changeMonth(1) }
-        monthBtn.setOnClickListener { goToday() }
-        yearBtn.setOnClickListener { goToday() }
+
+        monthBtn.setOnClickListener { showMonthPicker() }
+        yearBtn.setOnClickListener { showYearPicker() }
+
+        // Bấm giữ nút Tháng hoặc Năm để nhảy nhanh về hôm nay
+        monthBtn.setOnLongClickListener { goToday(); true }
+        yearBtn.setOnLongClickListener { goToday(); true }
 
         nav.addView(prevBtn)
         nav.addView(monthBtn)
@@ -509,6 +517,85 @@ class MainActivity : AppCompatActivity() {
         // ---------------- GIỜ HOÀNG ĐẠO ----------------
         goodHoursLabel.text = "Giờ hoàng đạo: Sửu (1-3), Thìn (7-9), Ngọ (11-13), " +
             "Mùi (13-15), Tuất (19-21), Hợi (21-23)"
+    }
+
+    // ========================================================
+    // CHỌN NHANH THÁNG / NĂM
+    // ========================================================
+
+    private fun showMonthPicker() {
+
+        val picker = NumberPicker(this).apply {
+            minValue = 1
+            maxValue = 12
+            value = month
+            displayedValues = (1..12).map { "Tháng $it" }.toTypedArray()
+            wrapSelectorWheel = true
+        }
+
+        val container = FrameLayout(this).apply {
+            setPadding(dp(24), dp(8), dp(24), dp(8))
+            addView(
+                picker,
+                FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                    Gravity.CENTER
+                )
+            )
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Chọn tháng")
+            .setView(container)
+            .setPositiveButton("Chọn") { _, _ ->
+                month = picker.value
+
+                val maxDay = YearMonth.of(year, month).lengthOfMonth()
+                val day = minOf(selected.dayOfMonth, maxDay)
+                selected = LocalDate.of(year, month, day)
+
+                refresh()
+            }
+            .setNegativeButton("Hủy", null)
+            .show()
+    }
+
+    private fun showYearPicker() {
+
+        val picker = NumberPicker(this).apply {
+            minValue = 1900
+            maxValue = 2100
+            value = year
+            wrapSelectorWheel = false
+        }
+
+        val container = FrameLayout(this).apply {
+            setPadding(dp(24), dp(8), dp(24), dp(8))
+            addView(
+                picker,
+                FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                    Gravity.CENTER
+                )
+            )
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Chọn năm")
+            .setView(container)
+            .setPositiveButton("Chọn") { _, _ ->
+                year = picker.value
+
+                val maxDay = YearMonth.of(year, month).lengthOfMonth()
+                val day = minOf(selected.dayOfMonth, maxDay)
+                selected = LocalDate.of(year, month, day)
+
+                refresh()
+            }
+            .setNegativeButton("Hủy", null)
+            .show()
     }
 
     // ========================================================
