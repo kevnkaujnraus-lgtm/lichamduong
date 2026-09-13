@@ -4,6 +4,7 @@ from calendar import monthrange
 from kivy.app import App
 from kivy.metrics import dp
 from kivy.core.window import Window
+from kivy.utils import platform
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
@@ -24,6 +25,16 @@ from lunar import (
 # ============================================================
 
 Window.clearcolor = (1, 1, 1, 1)
+
+# Trên Android/iOS, hệ điều hành tự quyết định kích thước (toàn màn hình),
+# không được ghi đè. Khi chạy thử trên máy tính (python main.py), Kivy mặc
+# định mở cửa sổ 800x600 (dạng ngang) khiến lưới lịch bị bóp rất nhỏ theo
+# chiều cao. Đặt lại cửa sổ theo tỉ lệ điện thoại (dọc, cao) để xem đúng
+# như trên thiết bị thật và lưới lịch có đủ không gian hiển thị to, rõ.
+if platform not in ("android", "ios"):
+    Window.size = (420, 840)
+    Window.minimum_width = 360
+    Window.minimum_height = 640
 
 
 # ============================================================
@@ -66,6 +77,7 @@ class Cell(Button):
         sunday=False,
         saturday=False,
         today=False,
+        selected=False,
         **kwargs
     ):
         super().__init__(**kwargs)
@@ -82,6 +94,10 @@ class Cell(Button):
         self.valign = "middle"
 
         self.solar_day = solar_day
+
+        # Trạng thái tô sáng khi ô đang được chọn
+        self.is_selected = False
+        self.base_bg = (1, 1, 1, 1)
 
         # Ô trống
         if solar_day is None:
@@ -113,8 +129,8 @@ class Cell(Button):
         # ----------------------------------------------------
 
         self.text = (
-            f"[size=31][color={main_color}]{solar_day}[/color][/size]\n"
-            f"[size=17][color={sub_color}]"
+            f"[size=33][color={main_color}]{solar_day}[/color][/size]\n"
+            f"[size=18][color={sub_color}]"
             f"{lunar_day}/{lunar_month}"
             f"[/color][/size]"
         )
@@ -124,17 +140,46 @@ class Cell(Button):
         # ----------------------------------------------------
 
         if today:
-            self.background_color = (
+            self.base_bg = (
                 0.88,
                 0.94,
                 0.99,
                 1
             )
 
+        self.background_color = self.base_bg
+
+        # ----------------------------------------------------
+        # ĐÁNH DẤU NGÀY ĐANG CHỌN
+        # ----------------------------------------------------
+
+        if selected:
+            self.set_selected(True)
+
         self.bind(
             pos=self._draw_border,
             size=self._draw_border
         )
+
+    # ========================================================
+    # BẬT / TẮT TÔ SÁNG Ô ĐANG CHỌN
+    # ========================================================
+
+    def set_selected(self, value):
+
+        self.is_selected = value
+
+        if value:
+            self.background_color = (
+                0.20,
+                0.55,
+                0.95,
+                1
+            )
+        else:
+            self.background_color = self.base_bg
+
+
 
     def _draw_border(self, *args):
 
@@ -179,6 +224,9 @@ class Calendar(BoxLayout):
 
         self.year = self.today.year
         self.month = self.today.month
+
+        # Lưu các ô đang hiển thị theo ngày để tô sáng khi chọn
+        self.cell_by_date = {}
 
         self.make_ui()
 
@@ -510,6 +558,7 @@ class Calendar(BoxLayout):
     def refresh(self):
 
         self.grid.clear_widgets()
+        self.cell_by_date = {}
 
         self.month_title.text = (
             f"Tháng {self.month} năm {self.year}"
@@ -619,13 +668,24 @@ class Calendar(BoxLayout):
                 prev_y
             )
 
+            prev_dt = date(
+                prev_y,
+                prev_m,
+                day
+            )
+
+            prev_cell = Cell(
+                day,
+                lunar[0],
+                lunar[1],
+                muted=True,
+                selected=(prev_dt == self.selected)
+            )
+
+            self.cell_by_date[prev_dt] = prev_cell
+
             self.grid.add_widget(
-                Cell(
-                    day,
-                    lunar[0],
-                    lunar[1],
-                    muted=True
-                )
+                prev_cell
             )
 
         # ----------------------------------------------------
@@ -658,8 +718,13 @@ class Calendar(BoxLayout):
                 ),
                 today=(
                     dt == self.today
+                ),
+                selected=(
+                    dt == self.selected
                 )
             )
+
+            self.cell_by_date[dt] = cell
 
             cell.bind(
                 on_release=lambda obj,
@@ -692,13 +757,24 @@ class Calendar(BoxLayout):
                 next_y
             )
 
+            next_dt = date(
+                next_y,
+                next_m,
+                next_day
+            )
+
+            next_cell = Cell(
+                next_day,
+                lunar[0],
+                lunar[1],
+                muted=True,
+                selected=(next_dt == self.selected)
+            )
+
+            self.cell_by_date[next_dt] = next_cell
+
             self.grid.add_widget(
-                Cell(
-                    next_day,
-                    lunar[0],
-                    lunar[1],
-                    muted=True
-                )
+                next_cell
             )
 
             next_day += 1
@@ -739,7 +815,22 @@ class Calendar(BoxLayout):
         if not isinstance(dt, date):
             return
 
+        old_selected = self.selected
         self.selected = dt
+
+        # ----------------------------------------------------
+        # TÔ SÁNG Ô ĐANG CHỌN TRÊN LƯỚI
+        # ----------------------------------------------------
+
+        old_cell = self.cell_by_date.get(old_selected)
+
+        if old_cell is not None:
+            old_cell.set_selected(False)
+
+        new_cell = self.cell_by_date.get(dt)
+
+        if new_cell is not None:
+            new_cell.set_selected(True)
 
         lunar = solar_to_lunar(
             dt.day,
