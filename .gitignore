@@ -1,0 +1,71 @@
+# ============================================================
+# QUANLYPASS - Git Ignore
+# ============================================================
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyd
+
+# Virtual environment
+.venv/
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# Python tools
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Build
+build/
+dist/
+*.spec.bak
+
+# Logs
+*.log
+logs/
+
+# Temporary
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Node
+node_modules/
+
+# Android
+.gradle/
+local.properties
+*.apk
+*.aab
+
+# OS generated
+.DS_Store
+
+# Git
+.git/
+
+# Sensitive files
+secrets/
+credentials/

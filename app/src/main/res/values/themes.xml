@@ -1,0 +1,15 @@
+<resources>
+    <style name="Theme.LichAmDuong" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <item name="android:windowBackground">@android:color/white</item>
+        <item name="android:statusBarColor">@android:color/white</item>
+        <item name="android:windowLightStatusBar">true</item>
+
+        <!-- Một họ chữ duy nhất cho cả hộp thoại, NumberPicker, nút bấm -->
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="fontFamily">sans-serif</item>
+
+        <item name="colorPrimary">#1825C9</item>
+        <item name="colorPrimaryDark">#1825C9</item>
+        <item name="colorAccent">#3389F2</item>
+    </style>
+</resources>
